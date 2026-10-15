@@ -24,7 +24,18 @@ def game_init() -> tuple:
     return (screen, clock)
 
 
+def render_bg_square(dimensions, colors, sq_size):
+    board_surface = pygame.Surface((dimensions * sq_size, dimensions * sq_size))
+    for i in range(dimensions):
+        for j in range(dimensions):
+            color = colors[(i + j) % 2]
+            rect = j * sq_size, i * sq_size, sq_size, sq_size
+            pygame.draw.rect(board_surface, color, rect)
+    return board_surface
+
+
 def game_loop(main_surface, clock):
+    board_surface = render_bg_square(DIMENSIONS, COLORS, SQ_SIZE)
     running: bool = True
     clock.tick(60)
     while running:
@@ -33,7 +44,8 @@ def game_loop(main_surface, clock):
                 running: bool = False
         # screen reset
         main_surface.fill((255, 255, 255))
-        # render
+        # render the frame
+        main_surface.blit(board_surface, (0, 0))
         pygame.display.flip()
     pygame.quit()
 
