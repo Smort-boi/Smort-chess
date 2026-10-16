@@ -1,7 +1,4 @@
-"""
-current goal is to render the pieces into memory ready to be blitted onto the main
-screen
-"""
+""" """
 
 import os
 import sys
@@ -21,7 +18,7 @@ COLORS: list[tuple] = [
 ]
 
 
-def load_pieces_into_memory(asset_directory) -> list:
+def load_pieces_into_memory(asset_directory, size) -> dict:
     asset_dir = os.path.join(os.getcwd(), "assets")
     piece_aliases = {
         "black-bishop.png": "bb",
@@ -37,21 +34,15 @@ def load_pieces_into_memory(asset_directory) -> list:
         "white-queen.png": "wq",
         "white-rook.png": "wr",
     }
-    loaded_pieces = []
-    for file in os.listdir(asset_dir):
-        if file in piece_aliases:
-            loaded_pieces.append(
-                pygame.image.load(
-                    os.path.join(asset_dir, file),
-                    piece_aliases[file],
-                )
-            )
-    return loaded_pieces
-    # loaded_pieces = [
-    #    pygame.image.load(os.path.join(asset_dir, file), piece_aliases[file])
-    #    for file in os.listdir(asset_dir)
-    #    if file in piece_aliases
-    # ]
+    # Some black magic type shit
+    return {
+        piece_aliases[file]: pygame.transform.smoothscale(
+            pygame.image.load(os.path.join(asset_dir, file)).convert_alpha(),
+            (size, size),
+        )
+        for file in os.listdir(asset_dir)
+        if file in piece_aliases
+    }
 
 
 def game_init() -> tuple:
@@ -87,7 +78,7 @@ def render_highlights(color: tuple, sq_size) -> pygame.Surface:
 # other functions for processing
 def game_loop(main_surface: pygame.Surface, clock: pygame.Clock):
     # pre-rendering
-    loaded_pieces = load_pieces_into_memory("assets")
+    loaded_pieces = load_pieces_into_memory("assets", SQ_SIZE)
     board_surface = render_bg_square(DIMENSIONS, COLORS, SQ_SIZE)
     highlight_surface = render_highlights(COLORS[2], SQ_SIZE)
     running: bool = True
@@ -105,6 +96,8 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock):
         # render the frame
         main_surface.blit(board_surface, (0, 0))
         main_surface.blit(highlight_surface, (current_x * SQ_SIZE, current_y * SQ_SIZE))
+        # testing the if the picees load at all
+        main_surface.blit(loaded_pieces["wk"], (0, 0))
         # finish rendering the frame
         pygame.display.flip()
         clock.tick(60)
