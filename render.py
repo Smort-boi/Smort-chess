@@ -21,22 +21,37 @@ COLORS: list[tuple] = [
 ]
 
 
-def load_pieces():
-    piece_aliases = {}
-
-
-"black-bishop.png"
-"black-king.png"
-"black-knight.png"
-"black-pawn.png"
-"black-queen.png"
-"black-rook.png"
-"white-bishop.png"
-"white-king.png"
-"white-knight.png"
-"white-pawn.png"
-"white-queen.png"
-"white-rook.png"
+def load_pieces_into_memory(asset_directory) -> list:
+    asset_dir = os.path.join(os.getcwd(), "assets")
+    piece_aliases = {
+        "black-bishop.png": "bb",
+        "black-king.png": "bk",
+        "black-knight.png": "bn",
+        "black-pawn.png": "bp",
+        "black-queen.png": "bq",
+        "black-rook.png": "br",
+        "white-bishop.png": "wb",
+        "white-king.png": "wk",
+        "white-knight.png": "wn",
+        "white-pawn.png": "wp",
+        "white-queen.png": "wq",
+        "white-rook.png": "wr",
+    }
+    loaded_pieces = []
+    for file in os.listdir(asset_dir):
+        if file in piece_aliases:
+            loaded_pieces.append(
+                pygame.image.load(
+                    os.path.join(asset_dir, file),
+                    piece_aliases[file],
+                )
+            )
+    return loaded_pieces
+    # loaded_pieces = [
+    #    pygame.image.load(os.path.join(asset_dir, file), piece_aliases[file])
+    #    for file in os.listdir(asset_dir)
+    #    if file in piece_aliases
+    # ]
 
 
 def game_init() -> tuple:
@@ -49,7 +64,9 @@ def game_init() -> tuple:
 
 
 # renders the BG once to
-def render_bg_square(dimensions: int, colors: list[tuple], sq_size: int):
+def render_bg_square(
+    dimensions: int, colors: list[tuple], sq_size: int
+) -> pygame.Surface:
 
     board_surface = pygame.Surface((dimensions * sq_size, dimensions * sq_size))
     for i in range(dimensions):
@@ -70,6 +87,7 @@ def render_highlights(color: tuple, sq_size) -> pygame.Surface:
 # other functions for processing
 def game_loop(main_surface: pygame.Surface, clock: pygame.Clock):
     # pre-rendering
+    loaded_pieces = load_pieces_into_memory("assets")
     board_surface = render_bg_square(DIMENSIONS, COLORS, SQ_SIZE)
     highlight_surface = render_highlights(COLORS[2], SQ_SIZE)
     running: bool = True
