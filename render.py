@@ -1,3 +1,8 @@
+"""
+current goal is to render the pieces into memory ready to be blitted onto the main
+screen
+"""
+
 import os
 import sys
 
@@ -14,6 +19,24 @@ COLORS: list[tuple] = [
     (118, 150, 86),  # darker color
     (186, 202, 68),  # highlight color
 ]
+
+
+def load_pieces():
+    piece_aliases = {}
+
+
+"black-bishop.png"
+"black-king.png"
+"black-knight.png"
+"black-pawn.png"
+"black-queen.png"
+"black-rook.png"
+"white-bishop.png"
+"white-king.png"
+"white-knight.png"
+"white-pawn.png"
+"white-queen.png"
+"white-rook.png"
 
 
 def game_init() -> tuple:
