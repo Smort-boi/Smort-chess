@@ -1,3 +1,11 @@
+"""
+I need to make a class that can store pieces in a 64 lenth
+array with the information density of 5 bits per piece
+"""
+
+from typing import Tuple
+
+
 class Piece:
     none = 0b00000
     king = 0b00001
@@ -12,13 +20,45 @@ class Piece:
 
 
 class Board:
-    square = [0 for _ in range(64)]
-    square[0] = Piece.bishop | Piece.white
+    def __init__(self) -> None:
+        pass
+
+    def from_fen_to_board(self, fen_string: str):  # -> list
+        square = [0] * 64
+        piece_type_from_symbol = {
+            "k": Piece.king,
+            "p": Piece.pawn,
+            "n": Piece.knight,
+            "b": Piece.bishop,
+            "r": Piece.rook,
+            "q": Piece.queen,
+        }
+
+        fen_board = fen_string.split(" ")[0]
+        file: int = 0
+        rank: int = 7
+        for char in fen_board:
+            if char == "/":
+                file = 0
+                rank -= 1
+            else:
+                if char.isdigit():
+                    file += int(char)
+                else:
+                    piece_color = Piece.white if (char.isupper()) else Piece.black
+                    piece_type = piece_type_from_symbol[char.lower()]
+                    square[rank * 8 + file] = piece_color | piece_type
+                    file += 1
+        return square
 
 
 def main():
-    board = Board()
-    print(board.square)
+    board: Board = Board()
+    print(
+        board.from_fen_to_board(
+            fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -1,4 +1,8 @@
-""" """
+"""
+now my goal is to get a working board_state.
+and a function that can parse that can
+parse any given board state into a pygame surface
+"""
 
 import os
 import sys
@@ -18,7 +22,8 @@ COLORS: list[tuple] = [
 ]
 
 
-def load_pieces_into_memory(asset_directory, size) -> dict:
+# return dict containing the file as aliases
+def load_pieces_into_memory(asset_directory, size) -> dict[str, pygame.Surface]:
     asset_dir = os.path.join(os.getcwd(), "assets")
     piece_aliases = {
         "black-bishop.png": "bb",
@@ -78,9 +83,11 @@ def render_highlights(color: tuple, sq_size) -> pygame.Surface:
 # other functions for processing
 def game_loop(main_surface: pygame.Surface, clock: pygame.Clock):
     # pre-rendering
-    loaded_pieces = load_pieces_into_memory("assets", SQ_SIZE)
-    board_surface = render_bg_square(DIMENSIONS, COLORS, SQ_SIZE)
-    highlight_surface = render_highlights(COLORS[2], SQ_SIZE)
+    loaded_pieces = load_pieces_into_memory(asset_directory="assets", size=SQ_SIZE)
+    board_surface = render_bg_square(
+        dimensions=DIMENSIONS, colors=COLORS, sq_size=SQ_SIZE
+    )
+    highlight_surface = render_highlights(color=COLORS[2], sq_size=SQ_SIZE)
     running: bool = True
 
     while running:
