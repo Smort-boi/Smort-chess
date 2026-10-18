@@ -1,9 +1,6 @@
 """
-I need to make a class that can store pieces in a 64 lenth
-array with the information density of 5 bits per piece
+i need a break
 """
-
-from typing import Tuple
 
 
 class Piece:
@@ -34,7 +31,7 @@ class Board:
             "q": Piece.queen,
         }
 
-        fen_board = fen_string.split(" ")[0]
+        fen_board: str = fen_string.split(" ")[0]
         file: int = 0
         rank: int = 7
         for char in fen_board:
