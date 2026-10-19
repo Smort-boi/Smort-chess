@@ -8,6 +8,9 @@ import os
 import sys
 
 import pygame
+from pygame.image import load
+
+from board import Board, Piece
 
 # Constants
 DIMENSIONS: int = 8
@@ -21,23 +24,25 @@ COLORS: list[tuple] = [
     (186, 202, 68),  # highlight color
 ]
 
+board: Board = Board()
+
 
 # return dict containing the file as aliases
-def load_pieces_into_memory(asset_directory, size) -> dict[str, pygame.Surface]:
+def load_pieces_into_memory(asset_directory, size) -> dict[int, pygame.Surface]:
     asset_dir = os.path.join(os.getcwd(), "assets")
     piece_aliases = {
-        "black-bishop.png": "bb",
-        "black-king.png": "bk",
-        "black-knight.png": "bn",
-        "black-pawn.png": "bp",
-        "black-queen.png": "bq",
-        "black-rook.png": "br",
-        "white-bishop.png": "wb",
-        "white-king.png": "wk",
-        "white-knight.png": "wn",
-        "white-pawn.png": "wp",
-        "white-queen.png": "wq",
-        "white-rook.png": "wr",
+        "black-bishop.png": 12,
+        "black-king.png": 9,
+        "black-knight.png": 11,
+        "black-pawn.png": 10,
+        "black-queen.png": 14,
+        "black-rook.png": 13,
+        "white-bishop.png": 20,
+        "white-king.png": 17,
+        "white-knight.png": 19,
+        "white-pawn.png": 18,
+        "white-queen.png": 22,
+        "white-rook.png": 21,
     }
     # Some black magic type shit
     return {
@@ -48,6 +53,22 @@ def load_pieces_into_memory(asset_directory, size) -> dict[str, pygame.Surface]:
         for file in os.listdir(asset_dir)
         if file in piece_aliases
     }
+
+
+def render_pieces(dimensions, sq_size, board_array, piece_surfaces) -> pygame.Surface:
+    board_surface = pygame.Surface(
+        (dimensions * sq_size, dimensions * sq_size), pygame.SRCALPHA
+    )
+    for index, piece in enumerate(board_array):
+        if piece == 0:
+            pass
+        else:
+            rect = ((index % dimensions) * sq_size, (index // dimensions) * sq_size)
+            board_surface.blit(
+                piece_surfaces[piece],
+                rect,
+            )
+    return board_surface
 
 
 def game_init() -> tuple:
@@ -82,14 +103,22 @@ def render_highlights(color: tuple, sq_size) -> pygame.Surface:
 # the goal is to send the data generated/collected to be sent to
 # other functions for processing
 def game_loop(main_surface: pygame.Surface, clock: pygame.Clock):
-    # pre-rendering
+    # pre-rendering------------------------------------------------
     loaded_pieces = load_pieces_into_memory(asset_directory="assets", size=SQ_SIZE)
     board_surface = render_bg_square(
         dimensions=DIMENSIONS, colors=COLORS, sq_size=SQ_SIZE
     )
     highlight_surface = render_highlights(color=COLORS[2], sq_size=SQ_SIZE)
+    piece_surface = render_pieces(
+        dimensions=DIMENSIONS,
+        sq_size=SQ_SIZE,
+        board_array=board.from_fen_to_board(
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
+        ),
+        piece_surfaces=loaded_pieces,
+    )
+    # --------------------------------------------------------------
     running: bool = True
-
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -104,7 +133,7 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock):
         main_surface.blit(board_surface, (0, 0))
         main_surface.blit(highlight_surface, (current_x * SQ_SIZE, current_y * SQ_SIZE))
         # testing the if the picees load at all
-        main_surface.blit(loaded_pieces["wk"], (0, 0))
+        main_surface.blit(piece_surface, (0, 0))
         # finish rendering the frame
         pygame.display.flip()
         clock.tick(60)

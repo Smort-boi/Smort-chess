@@ -1,5 +1,5 @@
 """
-i need a break
+i need a class method that can change the piece position
 """
 
 
