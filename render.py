@@ -1,14 +1,9 @@
-"""
-now my goal is to get a working board_state.
-and a function that can parse that can
-parse any given board state into a pygame surface
-"""
+""" """
 
 import os
 import sys
 
 import pygame
-from pygame.image import load
 
 from board import Board, Piece
 
@@ -55,7 +50,13 @@ def load_pieces_into_memory(asset_directory, size) -> dict[int, pygame.Surface]:
     }
 
 
-def render_pieces(dimensions, sq_size, board_array, piece_surfaces) -> pygame.Surface:
+def render_pieces(
+    dimensions: int,
+    sq_size: int,
+    board_array: list[int],
+    piece_surfaces: dict[int, pygame.Surface],
+) -> pygame.Surface:
+
     board_surface = pygame.Surface(
         (dimensions * sq_size, dimensions * sq_size), pygame.SRCALPHA
     )
@@ -64,10 +65,7 @@ def render_pieces(dimensions, sq_size, board_array, piece_surfaces) -> pygame.Su
             pass
         else:
             rect = ((index % dimensions) * sq_size, (index // dimensions) * sq_size)
-            board_surface.blit(
-                piece_surfaces[piece],
-                rect,
-            )
+            board_surface.blit(piece_surfaces[piece], rect)
     return board_surface
 
 
@@ -76,6 +74,7 @@ def game_init() -> tuple:
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Smort chess")
+    # pygame.display.set_icon("")
     clock = pygame.time.Clock()
     return (screen, clock)
 
@@ -94,7 +93,7 @@ def render_bg_square(
     return board_surface
 
 
-def render_highlights(color: tuple, sq_size) -> pygame.Surface:
+def render_highlights(color: tuple, sq_size: int) -> pygame.Surface:
     highlight_surface = pygame.Surface((sq_size, sq_size))
     pygame.draw.rect(highlight_surface, color, (0, 0, sq_size, sq_size))
     return highlight_surface
