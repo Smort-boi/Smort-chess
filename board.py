@@ -12,8 +12,8 @@ class Piece:
     rook = 0b00101  # 5
     queen = 0b00110  # 6
 
-    white = 0b01000  # 8
-    black = 0b10000  # 16
+    white = 0b10000  # 8
+    black = 0b01000  # 16
 
 
 class Board:
@@ -49,9 +49,37 @@ class Board:
 
     def make_move(self, start_index: int, end_index: int):
         piece = self.squares[start_index]
+        if piece is Piece.none:
+            return self.squares
         self.squares[start_index] = Piece.none
         self.squares[end_index] = piece
+        if start_index == end_index:
+            return self.squares
         return self.squares
+
+    def accumulate_coordinates(
+        self, coordinates: tuple[int, int], sq_size: int
+    ) -> None:
+        if not hasattr(self, "start_coords") or self.start_coords is None:
+            self.start_coords = coordinates
+            return None  # First click: just select the start position
+        else:
+            end_coords = coordinates
+
+            # Convert pixel positions to grid ranks/files
+            start_file = self.start_coords[0] // sq_size
+            start_rank = 7 - (self.start_coords[1] // sq_size)
+
+            end_file = end_coords[0] // sq_size
+            end_rank = 7 - (end_coords[1] // sq_size)
+
+            # Convert to 0-63 indices
+            start_index = start_rank * 8 + start_file
+            end_index = end_rank * 8 + end_file
+
+            # Execute the move and reset selection
+            self.make_move(start_index, end_index)
+            self.start_coords = None
 
 
 def main():

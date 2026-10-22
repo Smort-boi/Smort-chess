@@ -9,9 +9,9 @@ from board import Board, Piece
 
 # Constants
 DIMENSIONS: int = 8
-WIDTH: int = 640
-HEIGHT: int = 640
 SQ_SIZE: int = 80
+WIDTH: int = DIMENSIONS * SQ_SIZE
+HEIGHT: int = DIMENSIONS * SQ_SIZE
 FPS: int = 60
 COLORS: list[tuple] = [
     (238, 238, 210),  # lighter color
@@ -22,10 +22,17 @@ COLORS: list[tuple] = [
 
 # initializes pygame contrains side effects
 def game_init() -> tuple:
+    def _load_icon_surface(icon_directory: str, icon_name: str) -> pygame.Surface:
+        icon_dir = os.path.join(os.getcwd(), icon_directory, icon_name)
+        return pygame.transform.scale(pygame.image.load(icon_dir), (30, 30))
+
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Smort chess")
-    # pygame.display.set_icon("")
+    pygame.display.set_icon(
+        _load_icon_surface(icon_directory="assets", icon_name="white-queen.png")
+    )
+
     clock = pygame.time.Clock()
     return (screen, clock)
 
@@ -34,18 +41,18 @@ def game_init() -> tuple:
 def load_pieces_into_memory(asset_directory, size) -> dict[int, pygame.Surface]:
     asset_dir = os.path.join(os.getcwd(), asset_directory)
     piece_aliases = {
-        "black-bishop.png": 12,
-        "black-king.png": 9,
-        "black-knight.png": 11,
-        "black-pawn.png": 10,
-        "black-queen.png": 14,
-        "black-rook.png": 13,
-        "white-bishop.png": 20,
-        "white-king.png": 17,
-        "white-knight.png": 19,
-        "white-pawn.png": 18,
-        "white-queen.png": 22,
-        "white-rook.png": 21,
+        "black-bishop.png": Piece.black | Piece.bishop,
+        "black-king.png": Piece.black | Piece.king,
+        "black-knight.png": Piece.black | Piece.knight,
+        "black-pawn.png": Piece.black | Piece.pawn,
+        "black-queen.png": Piece.black | Piece.queen,
+        "black-rook.png": Piece.black | Piece.rook,
+        "white-bishop.png": Piece.white | Piece.bishop,
+        "white-king.png": Piece.white | Piece.king,
+        "white-knight.png": Piece.white | Piece.knight,
+        "white-pawn.png": Piece.white | Piece.pawn,
+        "white-queen.png": Piece.white | Piece.queen,
+        "white-rook.png": Piece.white | Piece.rook,
     }
     # Some black magic type shit
     return {
@@ -72,8 +79,15 @@ def render_pieces(
         if piece == 0:
             continue
         else:
-            rect = ((index % dimensions) * sq_size, (index // dimensions) * sq_size)
+            row = index // dimensions
+            col = index % dimensions
+
+            # Flip the row so index 0 renders at the bottom
+            flipped_row = dimensions - 1 - row
+
+            rect = (col * sq_size, flipped_row * sq_size)
             board_surface.blit(piece_surfaces[piece], rect)
+
     return board_surface
 
 
@@ -100,19 +114,12 @@ def render_highlights(color: tuple, sq_size: int) -> pygame.Surface:
 # the goal is to send the data generated/collected to be sent to
 # other functions for processing
 def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
-    board.make_move(0, 50)
     # pre-rendering------------------------------------------------
     loaded_pieces = load_pieces_into_memory(asset_directory="assets", size=SQ_SIZE)
     board_surface = render_bg_square(
         dimensions=DIMENSIONS, colors=COLORS, sq_size=SQ_SIZE
     )
     highlight_surface = render_highlights(color=COLORS[2], sq_size=SQ_SIZE)
-    piece_surface = render_pieces(
-        dimensions=DIMENSIONS,
-        sq_size=SQ_SIZE,
-        board_array=board.squares,
-        piece_surfaces=loaded_pieces,
-    )
     # --------------------------------------------------------------
     running: bool = True
     while running:
@@ -122,16 +129,24 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
                 running: bool = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    pass
+                    board.accumulate_coordinates(
+                        (raw_mouse_pos_x, raw_mouse_pos_y), SQ_SIZE
+                    )
         # current square index
         current_x = raw_mouse_pos_x // SQ_SIZE
         current_y = raw_mouse_pos_y // SQ_SIZE
 
-        # main_surface.fill((255, 255, 255))
         # start rendering the frame
         main_surface.blit(board_surface, (0, 0))
         main_surface.blit(highlight_surface, (current_x * SQ_SIZE, current_y * SQ_SIZE))
-        # testing the if the picees load at all
+        # temp testing
+        piece_surface = render_pieces(
+            dimensions=DIMENSIONS,
+            sq_size=SQ_SIZE,
+            board_array=board.squares,
+            piece_surfaces=loaded_pieces,
+        )
+        # # renders the pieces
         main_surface.blit(piece_surface, (0, 0))
         # finish rendering the frame
         pygame.display.flip()
