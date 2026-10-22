@@ -1,4 +1,4 @@
-""" """
+"""now i need a function movement functionality to the game loop"""
 
 import os
 import sys
@@ -19,12 +19,20 @@ COLORS: list[tuple] = [
     (186, 202, 68),  # highlight color
 ]
 
-board: Board = Board()
+
+# initializes pygame contrains side effects
+def game_init() -> tuple:
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Smort chess")
+    # pygame.display.set_icon("")
+    clock = pygame.time.Clock()
+    return (screen, clock)
 
 
-# return dict containing the file as aliases
+# return dict containing the file as values of the aliases
 def load_pieces_into_memory(asset_directory, size) -> dict[int, pygame.Surface]:
-    asset_dir = os.path.join(os.getcwd(), "assets")
+    asset_dir = os.path.join(os.getcwd(), asset_directory)
     piece_aliases = {
         "black-bishop.png": 12,
         "black-king.png": 9,
@@ -62,21 +70,11 @@ def render_pieces(
     )
     for index, piece in enumerate(board_array):
         if piece == 0:
-            pass
+            continue
         else:
             rect = ((index % dimensions) * sq_size, (index // dimensions) * sq_size)
             board_surface.blit(piece_surfaces[piece], rect)
     return board_surface
-
-
-def game_init() -> tuple:
-    # initializes pygame contains side effects
-    pygame.init()
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Smort chess")
-    # pygame.display.set_icon("")
-    clock = pygame.time.Clock()
-    return (screen, clock)
 
 
 # renders the BG once to
@@ -101,7 +99,8 @@ def render_highlights(color: tuple, sq_size: int) -> pygame.Surface:
 
 # the goal is to send the data generated/collected to be sent to
 # other functions for processing
-def game_loop(main_surface: pygame.Surface, clock: pygame.Clock):
+def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
+    board.make_move(0, 50)
     # pre-rendering------------------------------------------------
     loaded_pieces = load_pieces_into_memory(asset_directory="assets", size=SQ_SIZE)
     board_surface = render_bg_square(
@@ -111,24 +110,25 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock):
     piece_surface = render_pieces(
         dimensions=DIMENSIONS,
         sq_size=SQ_SIZE,
-        board_array=board.from_fen_to_board(
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
-        ),
+        board_array=board.squares,
         piece_surfaces=loaded_pieces,
     )
     # --------------------------------------------------------------
     running: bool = True
     while running:
+        raw_mouse_pos_x, raw_mouse_pos_y = pygame.mouse.get_pos()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running: bool = False
-        raw_mouse_pos_x, raw_mouse_pos_y = pygame.mouse.get_pos()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    pass
         # current square index
         current_x = raw_mouse_pos_x // SQ_SIZE
         current_y = raw_mouse_pos_y // SQ_SIZE
 
         # main_surface.fill((255, 255, 255))
-        # render the frame
+        # start rendering the frame
         main_surface.blit(board_surface, (0, 0))
         main_surface.blit(highlight_surface, (current_x * SQ_SIZE, current_y * SQ_SIZE))
         # testing the if the picees load at all
@@ -137,11 +137,14 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock):
         pygame.display.flip()
         clock.tick(60)
     pygame.quit()
+    sys.exit()
 
 
 def main():
     screen, clock = game_init()
-    game_loop(screen, clock)
+    board: Board = Board()
+    board.from_fen_to_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
+    game_loop(screen, clock, board)
 
 
 if __name__ == "__main__":
