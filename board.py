@@ -53,50 +53,50 @@ class Board:
 
     def make_move(self, start_index: int, end_index: int) -> list[int]:
         piece = self.squares[start_index]
-        if piece is Piece.none:
+
+        print(f"the start index {start_index} had the value of {piece}")
+        print(f"the end index {end_index} had the value of {self.squares[end_index]} \n")
+
+        if self.squares[start_index] == 0:
+            return self.squares
+        if self.squares[start_index] == self.squares[end_index]:
             return self.squares
         self.squares[start_index] = Piece.none
         self.squares[end_index] = piece
-        if start_index == end_index:
-            return self.squares
+
         return self.squares
 
     def accumulate_coordinates( self, coordinates: tuple[int, int], sq_size: int) -> None:
-        """Stores raw coordinates, processes them, and forwards them to the
-        'make_move' method.
-
-        Note:
-            In future updates, processed coordinates will be routed through a
-            dependency check before reaching the legal move validator.
-
-        Pipeline:
-            accumulate_coordinates -> make_move -> [Dependency Check] -> legal_move_checker->[Move Made]
-        """
         if not hasattr(self, "start_coords") or self.start_coords is None:
             self.start_coords = coordinates
-            return  # First click: just select the start position
+            return # First click: just select the start position
         else:
             end_coords = coordinates
 
             # Convert pixel positions to grid ranks/files
-            start_file = self.start_coords[0] // sq_size
-            start_rank = 7 - (self.start_coords[1] // sq_size)
+            start_x = self.start_coords[0] // sq_size
+            start_y = 7 - (self.start_coords[1] // sq_size)
 
-            end_file = end_coords[0] // sq_size
-            end_rank = 7 - (end_coords[1] // sq_size)
+            end_x = end_coords[0] // sq_size
+            end_y = 7 - (end_coords[1] // sq_size)
 
             # Convert to 0-63 indices
-            start_index = start_rank * 8 + start_file
-            end_index = end_rank * 8 + end_file
-
+            start_index = start_y * 8 + start_x
+            end_index = end_y * 8 + end_x
+            if self.squares[start_index] == 0:
+                self.start_coords = None
+                return self.start_coords
+            
+            print(self.squares[start_index])
+            print(self.squares[end_index])
             # Execute the move and reset selection
-            self.make_move(start_index, end_index)
+            self.make_move(start_index=start_index, end_index=end_index)
             self.start_coords = None
 
     def __str__(self) -> str:
         board_array = []
 
-        for i, square in enumerate(self.squares, 1):
+        for i, square in enumerate(self.squares,1 ):
             board_array.append(f"{square:>2}")
 
             if i % 8 == 0:
@@ -111,7 +111,7 @@ def main():
     board: Board = Board()
     board.from_fen_to_board(fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
     print(board)
-    
+
 
 if __name__ == "__main__":
     main()

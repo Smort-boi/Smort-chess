@@ -1,5 +1,6 @@
-"""now i need a function movement functionality to the game loop"""
-
+"""
+now i need a function movement functionality to the game loop
+"""
 import os
 import sys
 
@@ -65,8 +66,9 @@ def load_pieces_into_memory(asset_directory, size) -> dict[int, pygame.Surface]:
 
 def render_pieces(dimensions: int,sq_size: int,board_array: list[int],piece_surfaces: dict[int, pygame.Surface]) -> pygame.Surface:
     board_surface = pygame.Surface(
-        (dimensions * sq_size, dimensions * sq_size), pygame.SRCALPHA
-    )
+        (dimensions * sq_size, dimensions * sq_size)
+    ).convert_alpha()
+    board_surface.fill((0,0,0,0))
     for index, piece in enumerate(board_array):
         if piece == 0:
             continue
@@ -126,7 +128,9 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
         main_surface.blit(board_surface, (0, 0))
         main_surface.blit(highlight_surface, (current_x * SQ_SIZE, current_y * SQ_SIZE))
         # temp testing
-        piece_surface = render_pieces(dimensions=DIMENSIONS, sq_size=SQ_SIZE, board_array=board.squares, piece_surfaces=loaded_pieces)
+        piece_surface = render_pieces(
+            dimensions=DIMENSIONS, sq_size=SQ_SIZE, board_array=board.squares, piece_surfaces=loaded_pieces
+            )
         # renders the pieces
         main_surface.blit(piece_surface, (0, 0))
         # -start-rendering-the-frame--------------------------------
