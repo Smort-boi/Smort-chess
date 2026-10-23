@@ -19,8 +19,12 @@ class Piece:
 class Board:
     def __init__(self) -> None:
         self.squares = [0] * 64
+        self.turn = Piece.white
 
-    def from_fen_to_board(self, fen_string: str):
+    def toggle_turn(self) -> None:
+        self.turn = Piece.black if self.turn == Piece.white else Piece.white
+
+    def from_fen_to_board(self, fen_string: str) -> list[int]:
         piece_type_from_symbol = {
             "k": Piece.king,
             "p": Piece.pawn,
@@ -47,7 +51,7 @@ class Board:
                     file += 1
         return self.squares
 
-    def make_move(self, start_index: int, end_index: int):
+    def make_move(self, start_index: int, end_index: int) -> list[int]:
         piece = self.squares[start_index]
         if piece is Piece.none:
             return self.squares
@@ -57,12 +61,20 @@ class Board:
             return self.squares
         return self.squares
 
-    def accumulate_coordinates(
-        self, coordinates: tuple[int, int], sq_size: int
-    ) -> None:
+    def accumulate_coordinates( self, coordinates: tuple[int, int], sq_size: int) -> None:
+        """Stores raw coordinates, processes them, and forwards them to the
+        'make_move' method.
+
+        Note:
+            In future updates, processed coordinates will be routed through a
+            dependency check before reaching the legal move validator.
+
+        Pipeline:
+            accumulate_coordinates -> make_move -> [Dependency Check] -> legal_move_checker->[Move Made]
+        """
         if not hasattr(self, "start_coords") or self.start_coords is None:
             self.start_coords = coordinates
-            return None  # First click: just select the start position
+            return  # First click: just select the start position
         else:
             end_coords = coordinates
 
@@ -81,15 +93,25 @@ class Board:
             self.make_move(start_index, end_index)
             self.start_coords = None
 
+    def __str__(self) -> str:
+        board_array = []
+
+        for i, square in enumerate(self.squares, 1):
+            board_array.append(f"{square:>2}")
+
+            if i % 8 == 0:
+                board_array.append("\n")
+            else:
+                board_array.append(", ")
+
+        return "".join(board_array)
+
 
 def main():
     board: Board = Board()
-    print(board.squares)  # before
     board.from_fen_to_board(fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
-    print(board.squares)  # after
-    board.make_move(10, 24)
-    print(board.squares)  # after making a move
-
+    print(board)
+    
 
 if __name__ == "__main__":
     main()
