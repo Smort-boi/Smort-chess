@@ -22,13 +22,13 @@ COLORS: list[tuple] = [
 
 
 # initializes pygame contrains side effects
-def game_init() -> tuple:
+def game_init(width,height) -> tuple:
     def _load_icon_surface(icon_directory: str, icon_name: str) -> pygame.Surface:
         icon_dir = os.path.join(os.getcwd(), icon_directory, icon_name)
         return pygame.transform.scale(pygame.image.load(icon_dir), (30, 30))
 
     pygame.init()
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption("Smort chess")
     pygame.display.set_icon(_load_icon_surface(icon_directory="assets", icon_name="white-queen.png"))
 
@@ -65,9 +65,7 @@ def load_pieces_into_memory(asset_directory, size) -> dict[int, pygame.Surface]:
 
 
 def render_pieces(dimensions: int,sq_size: int,board_array: list[int],piece_surfaces: dict[int, pygame.Surface]) -> pygame.Surface:
-    board_surface = pygame.Surface(
-        (dimensions * sq_size, dimensions * sq_size)
-    ).convert_alpha()
+    board_surface = pygame.Surface((dimensions * sq_size, dimensions * sq_size)).convert_alpha()
     board_surface.fill((0,0,0,0))
     for index, piece in enumerate(board_array):
         if piece == 0:
@@ -83,7 +81,6 @@ def render_pieces(dimensions: int,sq_size: int,board_array: list[int],piece_surf
             board_surface.blit(piece_surfaces[piece], rect)
 
     return board_surface
-
 
 # renders the BG once to
 def render_bg_square(dimensions: int, colors: list[tuple], sq_size: int) -> pygame.Surface:
@@ -109,6 +106,9 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
     loaded_pieces = load_pieces_into_memory(asset_directory="assets", size=SQ_SIZE)
     board_surface = render_bg_square(dimensions=DIMENSIONS, colors=COLORS,sq_size=SQ_SIZE)
     highlight_surface = render_highlights(color=COLORS[2], sq_size=SQ_SIZE)
+    piece_surface = render_pieces(
+        dimensions=DIMENSIONS, sq_size=SQ_SIZE, board_array=board.squares, piece_surfaces=loaded_pieces
+        )
     # --------------------------------------------------------------
     running: bool = True
     while running:
@@ -119,7 +119,7 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     board.accumulate_coordinates((mouse_pos_x, mouse_pos_y), sq_size=SQ_SIZE)
-                    main_surface.blit(highlight_surface,(mouse_pos_x,mouse_pos_y))
+                    piece_surface = render_pieces(dimensions=DIMENSIONS, sq_size=SQ_SIZE, board_array=board.squares, piece_surfaces=loaded_pieces)
         # -current-square-index
         current_x = mouse_pos_x // SQ_SIZE
         current_y = mouse_pos_y // SQ_SIZE
@@ -127,11 +127,6 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
         # -start-rendering-the-frame--------------------------------
         main_surface.blit(board_surface, (0, 0))
         main_surface.blit(highlight_surface, (current_x * SQ_SIZE, current_y * SQ_SIZE))
-        # temp testing
-        piece_surface = render_pieces(
-            dimensions=DIMENSIONS, sq_size=SQ_SIZE, board_array=board.squares, piece_surfaces=loaded_pieces
-            )
-        # renders the pieces
         main_surface.blit(piece_surface, (0, 0))
         # -start-rendering-the-frame--------------------------------
         pygame.display.flip()
@@ -141,9 +136,9 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
 
 
 def main():
-    screen, clock = game_init()
+    screen, clock = game_init(width=WIDTH,height=HEIGHT)
     board: Board = Board()
-    board.from_fen_to_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
+    board.from_fen_to_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b")
     game_loop(main_surface=screen, clock=clock, board=board)
 
 
