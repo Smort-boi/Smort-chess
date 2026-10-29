@@ -1,6 +1,8 @@
 """
-i need a class method that can change the piece position
 """
+
+
+from typing import Self
 
 
 class Piece:
@@ -18,31 +20,46 @@ class Piece:
 
 class Board:
     def __init__(self) -> None:
+        # initializing variables
         self.squares: list[int] = [Piece.none] * 64
-        self.turn: int | None = Piece.none
+        self.turn: int = Piece.none
+
+    def __str__(self) -> str:
+        board_array = []
+        for index, square in enumerate(self.squares, 1):
+            board_array.append(f"{square:>2},")
+            if index % 8 == 0:
+                board_array.append("\n")
+
+        match self.turn:
+            case Piece.black:
+                turn_str = "Black"
+            case Piece.white:
+                turn_str = "White"
+            case Piece.none | _:
+                turn_str = "This board has not been initiated yet, Use the 'from_fen_to_board' method to initiate"
+
+        board_array.append(f"Current turn is {turn_str}")
+        return "".join(board_array)
 
     def toggle_turn(self) -> None:
         self.turn = Piece.black if self.turn == Piece.white else Piece.white
 
     def from_fen_to_board(self, fen_string: str) -> list[int]:
-        """
-        If this function gets any more responsibilties i will split it into 2 or more
-        """
         piece_type_from_symbol = {
             "k": Piece.king,
             "p": Piece.pawn,
             "n": Piece.knight,
             "b": Piece.bishop,
             "r": Piece.rook,
-            "q": Piece.queen,
+            "q": Piece.queen
         }
-
         try:
             fen_board: str = fen_string.split(" ")[0].strip()
-            turn = fen_string.split(" ")[1].strip()
+            turn = fen_string.split(" ")[1].strip().lower()
         except IndexError:
             print(
-                "Invalid fen string, the string must contain the board state and the turn, using white as a fallback"
+                f"Invalid fen_string: {fen_string}: missing board state or turn."
             )
             return self.squares
 
@@ -64,49 +81,93 @@ class Board:
                     file += 1
         return self.squares
 
+    @staticmethod
+    def _pixels_to_coordinates(coordinates: tuple[int, int], sq_size: int) -> int:
+        x = coordinates[0] // sq_size
+        y = 7 - (coordinates[1] // sq_size)
+        return y * 8 + x
+
+    def accumulate_coordinates(self, coordinates: tuple[int, int], sq_size: int) -> None:
+        """
+        this code is satisfactory
+        """
+        if not hasattr(self, "start_index") or self.start_index is None:
+            start_index = self._pixels_to_coordinates(coordinates=coordinates, sq_size=sq_size)
+            if self.squares[start_index] != Piece.none:
+                self.start_index = start_index
+            return  # First click: just select the start position
+        else:
+            end_index = self._pixels_to_coordinates(coordinates=coordinates, sq_size=sq_size)
+            # Execute the move and reset selection
+            self.make_move(start_index=self.start_index, end_index=end_index)
+            self.start_index = None
+
     def make_move(self, start_index: int, end_index: int) -> list[int]:
+
         piece = self.squares[start_index]
 
         if self.squares[start_index] == self.squares[end_index]:
             return self.squares
-        self.squares[start_index] = Piece.none
-        self.squares[end_index] = piece
-
+        if end_index in self.generate_legal_moves(start_index):
+            self.squares[start_index] = Piece.none
+            self.squares[end_index] = piece
+        # return self.squares
         return self.squares
 
-    def accumulate_coordinates(self, coordinates: tuple[int, int], sq_size: int) -> None:
-        """
-        This code needs refacoring
-        """
-        if not hasattr(self, "start_coords") or self.start_coords is None:
-            start_x = coordinates[0] // sq_size
-            start_y = 7 - (coordinates[1] // sq_size)
+    def generate_legal_moves(self, index: int) -> list:
+        piece = self.squares[index]
+        if piece is Piece.none:
+            return []
+        piece_type = piece & 0b00111
+        piece_color = piece & 0b11000
+        if piece_type == Piece.knight:
+            return self.get_knight_moves(index)
+        elif piece_type == Piece.pawn:
+            return self.get_pawn_moves(index)
 
-            start_index = start_y * 8 + start_x
+        return []
 
-            if self.squares[start_index] != Piece.none:
-                self.start_coords = start_index
-            return  # First click: just select the start position
-        else:
-            end_coords = coordinates
+    def get_knight_moves(self, index) -> list[int]:
+        row = index // 8
+        col = index % 8
+        legal_moves = []
 
-            # Convert pixel positions to grid ranks/files
+        current_piece = self.squares[index]
+        current_color = (
+            current_piece & 0b11000
+        )  # Extracts the color bits (black or white)
 
-            end_x = end_coords[0] // sq_size
-            end_y = 7 - (end_coords[1] // sq_size)
+        # All 8 possible L-shaped (row_offset, col_offset) jumps for a knight
+        knight_offsets = [
+            (-2, -1), (-2, 1),
+            (-1, -2), (-1, 2),
+            (1, -2), (1, 2),
+            (2, -1), (2, 1),
+        ]
 
-            # Convert to 0-63 indices
-            end_index = end_y * 8 + end_x
+        for r_off, c_off in knight_offsets:
+            new_row = row + r_off
+            new_col = col + c_off
 
-            # Execute the move and reset selection
-            self.make_move(start_index=self.start_coords, end_index=end_index)
-            self.start_coords = None
+            # 1. Check if the destination is within board bounds (0 to 7)
+            if 0 <= new_row < 8 and 0 <= new_col < 8:
+                target_index = new_row * 8 + new_col
+                target_piece = self.squares[target_index]
 
-    def __str__(self) -> str:
-        board_array = []
-        for index, square in enumerate(self.squares, 1):
-            pass
-        return "".join(board_array)
+                # 2. Check if square is empty
+                if target_piece == Piece.none:
+                    legal_moves.append(target_index)
+                else:
+                    # 3. Check if it's an enemy piece (different color)
+                    target_color = target_piece & 0b11000
+                    if target_color != current_color:
+                        legal_moves.append(target_index)
+
+        return legal_moves
+
+    def get_pawn_moves(self,index):
+        raise NotImplementedError
+
 
 
 def main():

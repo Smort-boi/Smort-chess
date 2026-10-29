@@ -1,6 +1,3 @@
-"""
-now i need a function movement functionality to the game loop
-"""
 import os
 import sys
 
@@ -41,17 +38,17 @@ def load_pieces_into_memory(asset_directory, size) -> dict[int, pygame.Surface]:
     asset_dir = os.path.join(os.getcwd(), asset_directory)
     piece_aliases = {
         "black-bishop.png": Piece.black | Piece.bishop,
-        "black-king.png": Piece.black | Piece.king,
+        "black-king.png"  : Piece.black | Piece.king,
         "black-knight.png": Piece.black | Piece.knight,
-        "black-pawn.png": Piece.black | Piece.pawn,
-        "black-queen.png": Piece.black | Piece.queen,
-        "black-rook.png": Piece.black | Piece.rook,
+        "black-pawn.png"  : Piece.black | Piece.pawn,
+        "black-queen.png" : Piece.black | Piece.queen,
+        "black-rook.png"  : Piece.black | Piece.rook,
         "white-bishop.png": Piece.white | Piece.bishop,
-        "white-king.png": Piece.white | Piece.king,
+        "white-king.png"  : Piece.white | Piece.king,
         "white-knight.png": Piece.white | Piece.knight,
-        "white-pawn.png": Piece.white | Piece.pawn,
-        "white-queen.png": Piece.white | Piece.queen,
-        "white-rook.png": Piece.white | Piece.rook,
+        "white-pawn.png"  : Piece.white | Piece.pawn,
+        "white-queen.png" : Piece.white | Piece.queen,
+        "white-rook.png"  : Piece.white | Piece.rook,
     }
     # Some black magic type shit
     return {
@@ -115,30 +112,36 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
         mouse_pos_x, mouse_pos_y = pygame.mouse.get_pos()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running: bool = False
+                running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     board.accumulate_coordinates((mouse_pos_x, mouse_pos_y), sq_size=SQ_SIZE)
-                    piece_surface = render_pieces(dimensions=DIMENSIONS, sq_size=SQ_SIZE, board_array=board.squares, piece_surfaces=loaded_pieces)
+                    piece_surface = render_pieces(
+                        dimensions=DIMENSIONS,
+                        sq_size=SQ_SIZE,
+                        board_array=board.squares,
+                        piece_surfaces=loaded_pieces,
+                    )
         # -current-square-index
         current_x = mouse_pos_x // SQ_SIZE
         current_y = mouse_pos_y // SQ_SIZE
-
         # -start-rendering-the-frame--------------------------------
         main_surface.blit(board_surface, (0, 0))
         main_surface.blit(highlight_surface, (current_x * SQ_SIZE, current_y * SQ_SIZE))
         main_surface.blit(piece_surface, (0, 0))
-        # -start-rendering-the-frame--------------------------------
+
+        # -end-rendering-the-frame--------------------------------
         pygame.display.flip()
         clock.tick(60)
     pygame.quit()
     sys.exit()
 
 
-def main():
+def main()->None:
     screen, clock = game_init(width=WIDTH,height=HEIGHT)
     board: Board = Board()
-    board.from_fen_to_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b")
+    board.from_fen_to_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w")
+    print(board)
     game_loop(main_surface=screen, clock=clock, board=board)
 
 
