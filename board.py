@@ -2,10 +2,10 @@
 """
 
 
-from typing import Self
-
-
 class Piece:
+    COLOR_MASK = 0b11000
+    PIECE_MASK = 0b00111
+
     none = 0b00000  # 0
     king = 0b00001  # 1
     pawn = 0b00010  # 2
@@ -16,6 +16,21 @@ class Piece:
 
     black = 0b01000  # 8
     white = 0b10000  # 16
+
+    @staticmethod
+    def color(piece: int) -> int:
+        """returns the color of the current piece (piece = self.squares[index])"""
+        return piece & Piece.COLOR_MASK
+
+    @staticmethod
+    def piece_type(piece: int) -> int:
+        """returns the type of the current piece (piece = self.squares[index])"""
+        return piece & Piece.PIECE_MASK
+
+    @staticmethod
+    def iscolor(piece: int, color: int) -> bool:
+        """checks if the current piece is the same as the given color (piece = self.squares[index])"""
+        return ((piece & Piece.COLOR_MASK) == color)
 
 
 class Board:
@@ -118,8 +133,10 @@ class Board:
         piece = self.squares[index]
         if piece is Piece.none:
             return []
-        piece_type = piece & 0b00111
-        piece_color = piece & 0b11000
+
+        piece_type = Piece.piece_type(piece=piece)
+        piece_color = Piece.color(piece=piece)
+
         if piece_type == Piece.knight:
             return self.get_knight_moves(index)
         elif piece_type == Piece.pawn:
@@ -133,9 +150,7 @@ class Board:
         legal_moves = []
 
         current_piece = self.squares[index]
-        current_color = (
-            current_piece & 0b11000
-        )  # Extracts the color bits (black or white)
+        current_color = Piece.color(current_piece)  # Extracts the color bits (black or white)
 
         # All 8 possible L-shaped (row_offset, col_offset) jumps for a knight
         knight_offsets = [
@@ -159,16 +174,21 @@ class Board:
                     legal_moves.append(target_index)
                 else:
                     # 3. Check if it's an enemy piece (different color)
-                    target_color = target_piece & 0b11000
-                    if target_color != current_color:
+                    if not Piece.iscolor(piece=target_piece,color=current_color):
                         legal_moves.append(target_index)
 
         return legal_moves
 
     def get_pawn_moves(self,index):
-        raise NotImplementedError
+        raise NotImplementedError("the pawn moves are not implemented yet")
+        row = index // 8
+        col = index % 8
+        legal_moves = []
 
+        current_piece = self.squares[index]
+        current_color = Piece.color(current_piece)  # Extracts the color bits (black or white)
 
+        return legal_moves
 
 def main():
     board: Board = Board()
