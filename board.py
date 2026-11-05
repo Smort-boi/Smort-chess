@@ -1,5 +1,4 @@
-"""
-"""
+""" """
 
 
 class Piece:
@@ -30,7 +29,7 @@ class Piece:
     @staticmethod
     def iscolor(piece: int, color: int) -> bool:
         """checks if the current piece is the same as the given color (piece = self.squares[index])"""
-        return ((piece & Piece.COLOR_MASK) == color)
+        return (piece & Piece.COLOR_MASK) == color
 
 
 class Board:
@@ -41,7 +40,10 @@ class Board:
 
     def __str__(self) -> str:
         board_array = []
-        for index, square in enumerate(self.squares, 1):
+        for i in range(len(self.squares) - 1, -1, -1):
+            square = self.squares[i]
+            index = len(self.squares) - i
+
             board_array.append(f"{square:>2},")
             if index % 8 == 0:
                 board_array.append("\n")
@@ -51,8 +53,10 @@ class Board:
                 turn_str = "Black"
             case Piece.white:
                 turn_str = "White"
-            case Piece.none | _:
+            case Piece.none :
                 turn_str = "This board has not been initiated yet, Use the 'from_fen_to_board' method to initiate"
+            case _:
+                raise ValueError(f"Unexpected turn value: {self.turn}")
 
         board_array.append(f"Current turn is {turn_str}")
         return "".join(board_array)
@@ -67,15 +71,13 @@ class Board:
             "n": Piece.knight,
             "b": Piece.bishop,
             "r": Piece.rook,
-            "q": Piece.queen
+            "q": Piece.queen,
         }
         try:
             fen_board: str = fen_string.split(" ")[0].strip()
             turn = fen_string.split(" ")[1].strip().lower()
         except IndexError:
-            print(
-                f"Invalid fen_string: {fen_string}: missing board state or turn."
-            )
+            print(f"Invalid fen_string: {fen_string}: missing board state or turn.")
             return self.squares
 
         self.turn = Piece.black if turn == "b" else Piece.white
@@ -99,13 +101,11 @@ class Board:
     @staticmethod
     def _pixels_to_coordinates(coordinates: tuple[int, int], sq_size: int) -> int:
         x = coordinates[0] // sq_size
-        y = 7 - (coordinates[1] // sq_size)
+        y = 7 - (coordinates[1] // sq_size)  # this little (-7) reverses the row
         return y * 8 + x
 
     def accumulate_coordinates(self, coordinates: tuple[int, int], sq_size: int) -> None:
-        """
-        this code is satisfactory
-        """
+        """this code is satisfactory"""
         if not hasattr(self, "start_index") or self.start_index is None:
             start_index = self._pixels_to_coordinates(coordinates=coordinates, sq_size=sq_size)
             if self.squares[start_index] != Piece.none:
@@ -113,6 +113,10 @@ class Board:
             return  # First click: just select the start position
         else:
             end_index = self._pixels_to_coordinates(coordinates=coordinates, sq_size=sq_size)
+            if Piece.color(self.squares[end_index]) == Piece.color(self.squares[self.start_index]):
+                self.start_index = end_index 
+                # makes the selected piece different piece of the same color so 
+                # people cannot attempt to capture their own piece
             # Execute the move and reset selection
             self.make_move(start_index=self.start_index, end_index=end_index)
             self.start_index = None
@@ -120,7 +124,6 @@ class Board:
     def make_move(self, start_index: int, end_index: int) -> list[int]:
 
         piece = self.squares[start_index]
-
         if self.squares[start_index] == self.squares[end_index]:
             return self.squares
         if end_index in self.generate_legal_moves(start_index):
@@ -131,64 +134,60 @@ class Board:
 
     def generate_legal_moves(self, index: int) -> list:
         piece = self.squares[index]
-        if piece is Piece.none:
+        if piece == Piece.none:
             return []
 
         piece_type = Piece.piece_type(piece=piece)
         piece_color = Piece.color(piece=piece)
-
+        
         if piece_type == Piece.knight:
-            return self.get_knight_moves(index)
+            return get_knight_moves(squares=self.squares, index=index)
         elif piece_type == Piece.pawn:
-            return self.get_pawn_moves(index)
+            return get_pawn_moves(squares=self.squares, index=index)
 
         return []
 
-    def get_knight_moves(self, index) -> list[int]:
-        row = index // 8
-        col = index % 8
-        legal_moves = []
 
-        current_piece = self.squares[index]
-        current_color = Piece.color(current_piece)  # Extracts the color bits (black or white)
+def get_knight_moves(squares, index) -> list[int]:
+    raise NotImplementedError
 
-        # All 8 possible L-shaped (row_offset, col_offset) jumps for a knight
-        knight_offsets = [
-            (-2, -1), (-2, 1),
-            (-1, -2), (-1, 2),
-            (1, -2), (1, 2),
-            (2, -1), (2, 1),
-        ]
+def get_pawn_moves(squares: list[int], index: int) -> list[int]:
+    legal_moves = []
+    piece = squares[index]
+    row = (index // 8)
+    col = index % 8
 
-        for r_off, c_off in knight_offsets:
-            new_row = row + r_off
-            new_col = col + c_off
+    direction = 1 if Piece.iscolor(piece,Piece.white) else -1
+    start_row = 1 if Piece.iscolor(piece,Piece.white) else 6
 
-            # 1. Check if the destination is within board bounds (0 to 7)
-            if 0 <= new_row < 8 and 0 <= new_col < 8:
-                target_index = new_row * 8 + new_col
-                target_piece = self.squares[target_index]
+    one_step_row = row + direction
+    if 0 <= one_step_row < 8:
+        new_index = one_step_row * 8 + col
+        if squares[new_index] is Piece.none:
+            legal_moves.append(new_index)
+            if row == start_row:
+                two_step_row = row + direction + direction
+                if 0 <= two_step_row < 8:
+                    new_index_two = two_step_row * 8 + col
+                    if squares[new_index_two] is Piece.none:
+                        legal_moves.append(new_index_two)
 
-                # 2. Check if square is empty
-                if target_piece == Piece.none:
-                    legal_moves.append(target_index)
-                else:
-                    # 3. Check if it's an enemy piece (different color)
-                    if not Piece.iscolor(piece=target_piece,color=current_color):
-                        legal_moves.append(target_index)
+    capture_row = row + direction
+    if 0 <= capture_row < 8:
+        for capture_direction in (-1, 1):
+            capture_col = col + capture_direction
+            if 0 <= capture_col < 8:
+                capture_index = capture_row * 8 + capture_col
+                if squares[capture_index] is not Piece.none and Piece.color(squares[capture_index]) != Piece.color(piece):
+                    legal_moves.append(capture_index)
 
-        return legal_moves
+    print(f"piece type: {piece},start_index: {index},legal indexes: {legal_moves}")
+    return legal_moves
 
-    def get_pawn_moves(self,index):
-        raise NotImplementedError("the pawn moves are not implemented yet")
-        row = index // 8
-        col = index % 8
-        legal_moves = []
 
-        current_piece = self.squares[index]
-        current_color = Piece.color(current_piece)  # Extracts the color bits (black or white)
+def get_sliding_moves(squares: list[int], index: int, direction: list[tuple[int, int]]) -> list[int]:
+    raise NotImplementedError
 
-        return legal_moves
 
 def main():
     board: Board = Board()

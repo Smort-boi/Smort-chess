@@ -18,7 +18,7 @@ COLORS: list[tuple] = [
 ]
 
 
-# initializes pygame contrains side effects
+# initializes pygame contains side effects
 def game_init(width,height) -> tuple:
     def _load_icon_surface(icon_directory: str, icon_name: str) -> pygame.Surface:
         icon_dir = os.path.join(os.getcwd(), icon_directory, icon_name)
@@ -68,13 +68,10 @@ def render_pieces(dimensions: int,sq_size: int,board_array: list[int],piece_surf
         if piece == 0:
             continue
         else:
-            row = index // dimensions
+            row = (dimensions-1)-(index // dimensions) # flips the row in one step
             col = index % dimensions
 
-            # Flip the row so index 0 renders at the bottom
-            flipped_row = dimensions - 1 - row
-
-            rect = (col * sq_size, flipped_row * sq_size)
+            rect = (col * sq_size, row * sq_size)
             board_surface.blit(piece_surfaces[piece], rect)
 
     return board_surface
@@ -129,6 +126,8 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
         main_surface.blit(board_surface, (0, 0))
         main_surface.blit(highlight_surface, (current_x * SQ_SIZE, current_y * SQ_SIZE))
         main_surface.blit(piece_surface, (0, 0))
+        if hasattr(board,"start_index")and board.start_index is not None:
+            main_surface.blit(highlight_surface,(7-board.start_index%8*SQ_SIZE,(board.start_index)//8*SQ_SIZE))
 
         # -end-rendering-the-frame--------------------------------
         pygame.display.flip()
