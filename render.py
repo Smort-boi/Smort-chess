@@ -125,9 +125,9 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
         # -start-rendering-the-frame--------------------------------
         main_surface.blit(board_surface, (0, 0))
         main_surface.blit(highlight_surface, (current_x * SQ_SIZE, current_y * SQ_SIZE))
+        if hasattr(board,"start_index") and board.start_index is not None:
+            main_surface.blit(highlight_surface,(board.start_index%8*SQ_SIZE,(7-(board.start_index)//8)*SQ_SIZE))
         main_surface.blit(piece_surface, (0, 0))
-        if hasattr(board,"start_index")and board.start_index is not None:
-            main_surface.blit(highlight_surface,(7-board.start_index%8*SQ_SIZE,(board.start_index)//8*SQ_SIZE))
 
         # -end-rendering-the-frame--------------------------------
         pygame.display.flip()
@@ -140,7 +140,6 @@ def main()->None:
     screen, clock = game_init(width=WIDTH,height=HEIGHT)
     board: Board = Board()
     board.from_fen_to_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w")
-    print(board)
     game_loop(main_surface=screen, clock=clock, board=board)
 
 

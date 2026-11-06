@@ -101,8 +101,8 @@ class Board:
     @staticmethod
     def _pixels_to_coordinates(coordinates: tuple[int, int], sq_size: int) -> int:
         x = coordinates[0] // sq_size
-        y = 7 - (coordinates[1] // sq_size)  # this little (-7) reverses the row
-        return y * 8 + x
+        y = 7 - (coordinates[1] // sq_size)  # row gets reversed to match the chess board setup. 
+        return (y * 8 + x)
 
     def accumulate_coordinates(self, coordinates: tuple[int, int], sq_size: int) -> None:
         """this code is satisfactory"""
@@ -114,7 +114,8 @@ class Board:
         else:
             end_index = self._pixels_to_coordinates(coordinates=coordinates, sq_size=sq_size)
             if Piece.color(self.squares[end_index]) == Piece.color(self.squares[self.start_index]):
-                self.start_index = end_index 
+                self.start_index = end_index
+                return
                 # makes the selected piece different piece of the same color so 
                 # people cannot attempt to capture their own piece
             # Execute the move and reset selection
@@ -122,14 +123,15 @@ class Board:
             self.start_index = None
 
     def make_move(self, start_index: int, end_index: int) -> list[int]:
-
+        """sets the start index piece to Piece.none and the end index piece to the start index piece
+        with some added conditional checks"""
         piece = self.squares[start_index]
-        if self.squares[start_index] == self.squares[end_index]:
-            return self.squares
-        if end_index in self.generate_legal_moves(start_index):
-            self.squares[start_index] = Piece.none
-            self.squares[end_index] = piece
-        # return self.squares
+        if self.squares[start_index] == self.squares[end_index]: 
+            print("couldnt make a move")
+            return self.squares # return early if the start and end indecies are the same
+        if end_index in self.generate_legal_moves(start_index): # checks if the piece is in legal_moves
+            self.squares[start_index] = Piece.none # sets the start to none
+            self.squares[end_index] = piece # sets the end to the start
         return self.squares
 
     def generate_legal_moves(self, index: int) -> list:
@@ -149,14 +151,30 @@ class Board:
 
 
 def get_knight_moves(squares, index) -> list[int]:
-    raise NotImplementedError
+    """refactoring due: needs faster color check"""
+    legal_moves = []
+    piece = squares[index]
+    row = index // 8
+    col = index % 8
+    # covers all the L shape possibilities
+    knight_offsets = [(1,2),(-1,2), (2,1),(-2,1), (2,-1),(-2,-1),(1,-2),(-1,-2),]
+
+    for row_offset,col_offset in knight_offsets:
+        offset_row = row + row_offset # applying offsets
+        offset_col = col + col_offset
+        if 0<=offset_row < 8 and 0<=offset_col < 8: # bound checks
+            new_index = offset_row * 8 + offset_col
+            target_piece = squares[new_index]
+            if Piece.color(target_piece) != Piece.color(piece): # checks to make sure the pieces are different colors
+                legal_moves.append(new_index)
+
+    return legal_moves
 
 def get_pawn_moves(squares: list[int], index: int) -> list[int]:
     legal_moves = []
     piece = squares[index]
-    row = (index // 8)
+    row = index // 8
     col = index % 8
-
     direction = 1 if Piece.iscolor(piece,Piece.white) else -1
     start_row = 1 if Piece.iscolor(piece,Piece.white) else 6
 
@@ -181,9 +199,7 @@ def get_pawn_moves(squares: list[int], index: int) -> list[int]:
                 if squares[capture_index] is not Piece.none and Piece.color(squares[capture_index]) != Piece.color(piece):
                     legal_moves.append(capture_index)
 
-    print(f"piece type: {piece},start_index: {index},legal indexes: {legal_moves}")
     return legal_moves
-
 
 def get_sliding_moves(squares: list[int], index: int, direction: list[tuple[int, int]]) -> list[int]:
     raise NotImplementedError
