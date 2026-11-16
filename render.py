@@ -95,7 +95,7 @@ def render_highlights(color: tuple, sq_size: int) -> pygame.Surface:
 
 # the goal is to send the data generated/collected to be sent to
 # other functions for processing
-def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
+def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board) -> None:
     # pre-rendering------------------------------------------------
     loaded_pieces = load_pieces_into_memory(asset_directory="assets", size=SQ_SIZE)
     board_surface = render_bg_square(dimensions=DIMENSIONS, colors=COLORS,sq_size=SQ_SIZE)
@@ -119,17 +119,17 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board):
                         board_array=board.squares,
                         piece_surfaces=loaded_pieces,
                     )
-        # -current-square-index
+        # -current-square-index------------------------------------
         current_x = mouse_pos_x // SQ_SIZE
         current_y = mouse_pos_y // SQ_SIZE
-        # -start-rendering-the-frame--------------------------------
+        # -start-rendering-the-frame-------------------------------
         main_surface.blit(board_surface, (0, 0))
         main_surface.blit(highlight_surface, (current_x * SQ_SIZE, current_y * SQ_SIZE))
         if hasattr(board,"start_index") and board.start_index is not None:
             main_surface.blit(highlight_surface,(board.start_index%8*SQ_SIZE,(7-(board.start_index)//8)*SQ_SIZE))
         main_surface.blit(piece_surface, (0, 0))
 
-        # -end-rendering-the-frame--------------------------------
+        # -finish-rendering-the-frame------------------------------
         pygame.display.flip()
         clock.tick(60)
     pygame.quit()
@@ -140,6 +140,7 @@ def main()->None:
     screen, clock = game_init(width=WIDTH,height=HEIGHT)
     board: Board = Board()
     board.from_fen_to_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w")
+    # board.pre_load_sliding_pieces()
     game_loop(main_surface=screen, clock=clock, board=board)
 
 
