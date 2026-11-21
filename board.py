@@ -82,6 +82,7 @@ class Board:
         # initializing variables
         self.squares: list[int] = [Piece.none] * 64
         self.turn: int = Piece.none
+        self.move_history:list[tuple[int,int]] = []
 
     def __str__(self) -> str:
         board_array = []
@@ -167,27 +168,49 @@ class Board:
             self.make_move(start_index=self.start_index, end_index=end_index)
             self.start_index = None
 
-    def make_move(self, start_index: int, end_index: int) -> list[int]:
+    def undo_move(self)->list[int]|None:
+        """Undoes the latest move """
+        # this requires no legal move checking since the 
+        # moves have already made a legal pathway for this function to undo
+        if not self.move_history:
+            return self.squares
+
+        start_index,end_index = self.move_history.pop(-1)
+        piece = self.squares[end_index]
+
+        self.squares[end_index] = Piece.none
+        self.squares[start_index] = piece
+
+        return self.squares
+
+    def make_move(self, start_index: int, end_index: int) -> list[int] | None:
         """sets the start index piece to Piece.none and the end index piece to the start index piece
         with some added conditional checks"""
-        piece = self.squares[start_index]
         if self.squares[start_index] == self.squares[end_index]: 
-            print("couldnt make a move")
             return self.squares # return early if the start and end indecies are the same
+ 
+        # return early if given move is not in the list of legal moves
+        if end_index not in self.generate_legal_moves(start_index):            
+            return self.squares
 
-        if end_index in self.generate_legal_moves(start_index): # checks if the piece is in legal_moves
-            self.squares[start_index] = Piece.none # sets the start to none
-            self.squares[end_index] = piece # sets the end to the start
+        piece = self.squares[start_index] # temp caching
+        self.squares[start_index] = Piece.none # start set to none
+        self.squares[end_index] = piece # end set to the cached piece
+
+        self.move_history.append((start_index,end_index))
+        self.toggle_turn()
+
         return self.squares
 
     def generate_legal_moves(self, index: int) -> list:
         piece = self.squares[index]
-        if piece == Piece.none: 
-            return []
-
         piece_type = Piece.piece_type(piece=piece)
         piece_color = Piece.color(piece=piece)
-        
+        if piece == Piece.none: 
+            return []
+        if piece_color != self.turn:
+            return []
+
         match piece_type:
             case Piece.knight:
                 return get_knight_moves(squares=self.squares, index=index)
@@ -200,69 +223,102 @@ class Board:
             case Piece.queen:
                 return get_sliding_moves(squares=self.squares,index=index,directions=[-8,8,-1,1,-7,7,-9,9])
             case Piece.king:
-                raise NotImplementedError
+                return get_king_moves(squares=self.squares,index=index)
         return []
 
 
 def get_knight_moves(squares, index) -> list[int]:
-    legal_moves = []
-    piece = squares[index]
-    row = index // 8
-    col = index % 8
+    legal_moves: list[int] = []
+    piece: int = squares[index]
+    row: int = index // 8
+    col: int = index % 8
     # covers all the L shape possibilities
-    knight_offsets = [(1,2),(-1,2), (2,1),(-2,1), (2,-1),(-2,-1),(1,-2),(-1,-2),]
+    knight_offsets:list[tuple[int,int]] = [(1,2),(-1,2), (2,1),(-2,1), (2,-1),(-2,-1),(1,-2),(-1,-2),]
 
     for row_offset,col_offset in knight_offsets:
-        offset_row = row + row_offset # applying offsets
-        offset_col = col + col_offset
+        offset_row: int = row + row_offset  # applying offsets
+        offset_col: int = col + col_offset
+
         if 0<=offset_row < 8 and 0<=offset_col < 8: # bound checks
             new_index = offset_row * 8 + offset_col
             target_piece = squares[new_index]
+
             if Piece.color(target_piece) != Piece.color(piece): # checks to make sure the pieces are different colors
                 legal_moves.append(new_index)
 
     return legal_moves
 
 def get_pawn_moves(squares: list[int], index: int) -> list[int]:
-    legal_moves = []
-    piece = squares[index]
-    row = index // 8
-    col = index % 8
-    direction = 1 if Piece.iscolor(piece,Piece.white) else -1
-    start_row = 1 if Piece.iscolor(piece,Piece.white) else 6
+    """ this code is in desperate need of refactoring, but gaurd clauses break the capture logic
+    """
+    legal_moves: list[int] = []
+    piece: int = squares[index]
+    row: int = index // 8
+    col: int = index % 8
 
-    one_step_row = row + direction
-    if 0 <= one_step_row < 8:
-        new_index = one_step_row * 8 + col
-        if squares[new_index] == Piece.none:
-            legal_moves.append(new_index)
-            if row == start_row:
-                two_step_row = row + direction + direction
-                if 0 <= two_step_row < 8:
-                    new_index_two = two_step_row * 8 + col
-                    if squares[new_index_two] == Piece.none:
-                        legal_moves.append(new_index_two)
+    direction: int = 1 if Piece.iscolor(piece, Piece.white) else -1
+    start_row: int = 1 if Piece.iscolor(piece, Piece.white) else 6
+
+    target_rows = [row + direction]
+
+    if row == start_row:
+        target_rows.append(row + direction*2)
+
+    for target_row in target_rows:
+        if not (0<=target_row<8):
+            break
+
+        target_index = target_row * 8 + col
+
+        if squares[target_index] == Piece.none:
+            legal_moves.append(target_index)
 
 
     capture_row = row + direction
+
     if 0 <= capture_row < 8:
+
         for capture_direction in (-1, 1):
             capture_col = col + capture_direction
+           
             if 0 <= capture_col < 8:
                 capture_index = capture_row * 8 + capture_col
+
                 if squares[capture_index] != Piece.none and Piece.color(squares[capture_index]) != Piece.color(piece):
                     legal_moves.append(capture_index)
+
+    return legal_moves
+
+def get_king_moves(squares: list[int], index: int) -> list[int]:
+    legal_moves: list[int] = []
+    piece: int = squares[index]
+    row: int = index // 8
+    col: int = index % 8
+
+    king_offsets:list[tuple[int,int]] = [(0,1),(1,0),(1,1),(1,-1),(-1,1),(0,-1),(-1,0),(-1,-1)]
+
+    for row_offset, col_offset in king_offsets:
+        offset_row = row + row_offset
+        offset_col = col + col_offset
+
+        if 0<=offset_row < 8 and 0<=offset_col < 8: # bound checks
+            new_index = offset_row * 8 + offset_col
+            target_piece = squares[new_index]
+            
+            if Piece.color(target_piece) != Piece.color(piece):
+                legal_moves.append(new_index)
 
     return legal_moves
 
 
 def get_sliding_moves(squares: list[int], index: int, directions: list[int]) -> list[int]:
     # dict[int,dict[int,list[int]]]
-    legal_moves: list = []
+    legal_moves: list[int] = []
     piece: int = squares[index]
     piece_color: int = Piece.color(piece=piece)
-    
-    sliding_moves = Piece._SLIDING_MOVES
+
+    sliding_moves:dict[int,dict[int,list[int]]] = Piece._SLIDING_MOVES
+
     for direction in directions:
         ray_indices = sliding_moves[index][direction]
         for ray_index in ray_indices:

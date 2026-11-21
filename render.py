@@ -17,11 +17,18 @@ COLORS: list[tuple] = [
     (186, 202, 68),  # highlight color
 ]
 
+def get_absolute_path():
+    if getattr(sys, 'frozen', False):
+        base_path = os.path.dirname(sys.executable)
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return base_path
 
 # initializes pygame contains side effects
 def game_init(width,height) -> tuple:
     def _load_icon_surface(icon_directory: str, icon_name: str) -> pygame.Surface:
-        icon_dir = os.path.join(os.getcwd(), icon_directory, icon_name)
+        base_path = get_absolute_path()
+        icon_dir = os.path.join(base_path, icon_directory, icon_name)
         return pygame.transform.scale(pygame.image.load(icon_dir), (30, 30))
 
     pygame.init()
@@ -35,7 +42,9 @@ def game_init(width,height) -> tuple:
 
 # return dict containing the file as values of the aliases
 def load_pieces_into_memory(asset_directory, size) -> dict[int, pygame.Surface]:
-    asset_dir = os.path.join(os.getcwd(), asset_directory)
+
+    base_path = get_absolute_path()
+    asset_dir = os.path.join(base_path, asset_directory)
     piece_aliases = {
         "black-bishop.png": Piece.black | Piece.bishop,
         "black-king.png"  : Piece.black | Piece.king,
@@ -65,14 +74,13 @@ def render_pieces(dimensions: int,sq_size: int,board_array: list[int],piece_surf
     board_surface = pygame.Surface((dimensions * sq_size, dimensions * sq_size)).convert_alpha()
     board_surface.fill((0,0,0,0))
     for index, piece in enumerate(board_array):
-        if piece == 0:
-            continue
-        else:
-            row = (dimensions-1)-(index // dimensions) # flips the row in one step
-            col = index % dimensions
+        if piece == 0: continue
 
-            rect = (col * sq_size, row * sq_size)
-            board_surface.blit(piece_surfaces[piece], rect)
+        row = (dimensions-1)-(index // dimensions) # flips the row in one step
+        col = index % dimensions
+
+        rect = (col * sq_size, row * sq_size)
+        board_surface.blit(piece_surfaces[piece], rect)
 
     return board_surface
 
@@ -110,15 +118,23 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board) -
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    board.accumulate_coordinates((mouse_pos_x, mouse_pos_y), sq_size=SQ_SIZE)
-                    piece_surface = render_pieces(
-                        dimensions=DIMENSIONS,
-                        sq_size=SQ_SIZE,
-                        board_array=board.squares,
-                        piece_surfaces=loaded_pieces,
-                    )
+
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                board.accumulate_coordinates((mouse_pos_x, mouse_pos_y), sq_size=SQ_SIZE)
+                piece_surface = render_pieces(
+                    dimensions=DIMENSIONS,
+                    sq_size=SQ_SIZE,
+                    board_array=board.squares,
+                    piece_surfaces=loaded_pieces,
+                )
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_u:
+                board.undo_move()
+                piece_surface = render_pieces(
+                    dimensions=DIMENSIONS,
+                    sq_size=SQ_SIZE,
+                    board_array=board.squares,
+                    piece_surfaces=loaded_pieces,
+                )
         # -current-square-index------------------------------------
         current_x = mouse_pos_x // SQ_SIZE
         current_y = mouse_pos_y // SQ_SIZE
@@ -126,7 +142,7 @@ def game_loop(main_surface: pygame.Surface, clock: pygame.Clock, board: Board) -
         main_surface.blit(board_surface, (0, 0))
         main_surface.blit(highlight_surface, (current_x * SQ_SIZE, current_y * SQ_SIZE))
         if hasattr(board,"start_index") and board.start_index is not None:
-            main_surface.blit(highlight_surface,(board.start_index%8*SQ_SIZE,(7-(board.start_index)//8)*SQ_SIZE))
+            main_surface.blit(highlight_surface,((board.start_index%8)*SQ_SIZE,(7-(board.start_index)//8)*SQ_SIZE))
         main_surface.blit(piece_surface, (0, 0))
 
         # -finish-rendering-the-frame------------------------------
