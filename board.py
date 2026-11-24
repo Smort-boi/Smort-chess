@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 """
 The Board module handles all the move legality and board state
 """
@@ -34,23 +35,21 @@ class Piece:
         }
         rays:dict[int,dict[int,list[int]]] = {}
         for square in range(64):
+            row, col = divmod(square, 8)
+            square_rays: dict[int, list] = {}
+            for dir_offset, (dir_r, dir_c) in direction_deltas.items():
+                ray_squares: list = []
+                curr_row, curr_col = row, col
 
-                row, col = divmod(square, 8)
-                square_rays:dict[int,list] = {}
+                while True:
+                    curr_row += dir_r
+                    curr_col += dir_c
+                    if not (0 <= curr_row < 8 and 0 <= curr_col < 8):
+                        break
 
-                for dir_offset, (dir_r, dir_c) in direction_deltas.items():
-                    ray_squares:list = []
-                    curr_row, curr_col = row, col
-
-                    while True:
-                        curr_row += dir_r
-                        curr_col += dir_c
-                        if not (0 <= curr_row < 8 and 0 <= curr_col < 8):
-                            break
-
-                        ray_squares.append(curr_row * 8 + curr_col)
-                    square_rays[dir_offset] = ray_squares
-                rays[square] = square_rays
+                    ray_squares.append(curr_row * 8 + curr_col)
+                square_rays[dir_offset] = ray_squares
+            rays[square] = square_rays
 
         return rays
 
@@ -58,6 +57,8 @@ class Piece:
 
     @staticmethod
     def color(piece: int) -> int:
+        if piece == 0:
+            return 0
         """returns the color of the current piece (piece = self.squares[index])"""
         return piece & Piece.COLOR_MASK
 
@@ -82,7 +83,7 @@ class Board:
         # initializing variables
         self.squares: list[int] = [Piece.none] * 64
         self.turn: int = Piece.none
-        self.move_history:list[tuple[int,int]] = []
+        self.move_history:list[tuple[int,int,int,int]] = []
 
     def __str__(self) -> str:
         board_array = []
@@ -162,6 +163,7 @@ class Board:
             if Piece.color(self.squares[end_index]) == Piece.color(self.squares[self.start_index]):
                 self.start_index = end_index
                 return
+            # if Piece.color(self.squares[start_index]) != 
                 # makes the selected piece different piece of the same color so 
                 # people cannot attempt to capture their own piece
             # Execute the move and reset selection
@@ -175,29 +177,43 @@ class Board:
         if not self.move_history:
             return self.squares
 
-        start_index,end_index = self.move_history.pop(-1)
+        start_index,end_index,squishing_piece,squished_piece = self.move_history.pop(-1)
         piece = self.squares[end_index]
 
-        self.squares[end_index] = Piece.none
+        self.squares[end_index] = squished_piece
         self.squares[start_index] = piece
-
+        
+        self.toggle_turn()
         return self.squares
 
     def make_move(self, start_index: int, end_index: int) -> list[int] | None:
         """sets the start index piece to Piece.none and the end index piece to the start index piece
         with some added conditional checks"""
-        if self.squares[start_index] == self.squares[end_index]: 
+        if start_index == end_index: 
             return self.squares # return early if the start and end indecies are the same
  
         # return early if given move is not in the list of legal moves
         if end_index not in self.generate_legal_moves(start_index):            
             return self.squares
+        
+        start_piece = self.squares[start_index] # caching
+        end_piece = self.squares[end_index]
 
-        piece = self.squares[start_index] # temp caching
+
         self.squares[start_index] = Piece.none # start set to none
-        self.squares[end_index] = piece # end set to the cached piece
+        self.squares[end_index] = start_piece # end set to the cached piece
 
-        self.move_history.append((start_index,end_index))
+        # unmake move if in check
+        if self._is_king_in_check():
+            self.squares[end_index] = end_piece
+            self.squares[start_index] = start_piece
+            #-temp-----------------------------------------------------------
+            king_color = "white" if self.turn == Piece.white else "black"
+            print(f"{king_color} king is in check!")
+            #-temp-----------------------------------------------------------
+            return self.squares
+
+        self.move_history.append((start_index,end_index,start_piece,end_piece))
         self.toggle_turn()
 
         return self.squares
@@ -226,6 +242,38 @@ class Board:
                 return get_king_moves(squares=self.squares,index=index)
         return []
 
+    def _is_king_in_check(self) -> bool:
+        king_piece = self.turn | Piece.king # reconstructs the king piece
+        opponent = self.turn ^ Piece.COLOR_MASK
+        index = self.squares.index(king_piece)
+
+        direction_map = {
+            -8: [opponent | Piece.rook, opponent | Piece.queen],
+            8: [opponent | Piece.rook, opponent | Piece.queen],
+            1: [opponent | Piece.rook, opponent | Piece.queen],
+            -1: [opponent | Piece.rook, opponent | Piece.queen],
+            -7: [opponent | Piece.bishop, opponent | Piece.queen],
+            7: [opponent | Piece.bishop, opponent | Piece.queen],
+            -9: [opponent | Piece.bishop, opponent | Piece.queen],
+            9: [opponent | Piece.bishop, opponent | Piece.queen],
+        }
+        for direction,valid_piece_type in direction_map.items():
+            sliding_moves = get_sliding_moves(self.squares,index,[direction])
+            for sliding_move in sliding_moves: 
+                if self.squares[sliding_move] in valid_piece_type:
+                    return True
+        
+        for knight_square in get_knight_moves(squares=self.squares,index=index):
+            if self.squares[knight_square] == opponent|Piece.knight:
+                return True
+        
+        for pawn_move in get_pawn_moves(squares=self.squares,index=index):
+            if self.squares[pawn_move] == opponent|Piece.pawn:
+                return True
+
+
+        return False
+
 
 def get_knight_moves(squares, index) -> list[int]:
     legal_moves: list[int] = []
@@ -249,8 +297,6 @@ def get_knight_moves(squares, index) -> list[int]:
     return legal_moves
 
 def get_pawn_moves(squares: list[int], index: int) -> list[int]:
-    """ this code is in desperate need of refactoring, but gaurd clauses break the capture logic
-    """
     legal_moves: list[int] = []
     piece: int = squares[index]
     row: int = index // 8
